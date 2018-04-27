@@ -1,40 +1,51 @@
-global currentDamage
-currentDamage = 0
-
-
-def addDamage(Damage):
-    global currentDamage
-    currentDamage =+ (Damage)
-
-
-import pygame, random
+# Import libraries
+import pygame
+import random
 from time import *
 from pygame.locals import *
 
+# Intialize the mixer and clock
 pygame.init()
 pygame.mixer.init()
 fpsClock = pygame.time.Clock()
 
+# Damage, while not yet important, will be in the future
+global currentDamage
+currentDamage = 0
+def addDamage(Damage):
+    global currentDamage
+    currentDamage =+ Damage
+
+
+# Intensity is split into two parts: The displayed Gauge and the behind-the-scenes Counter
+IntensityGauge = 0
+IntensityCounter = 0
+
 # Board Dimensions (In Blocks)
 width = 7
 height = 9
+
+# How much the blocks will go up when manually raising the stack
 BlockPush = range(33)
-IntensityGauge = 0
-IntensityNumber = 0
 
+# Setting the frame rate; All time-based events will automatically adapt to the frame rate
+FrameRate = 30
 
-FrameRate = 120
-# Time to spawn, in seconds
-OriginalSpawnTime = 5 * FrameRate
+# Time for the blocks to rise/spawn, in seconds
+SpawnTimeInSeconds = 10
+
+# Some math to allow the last two lines of code to be future-proof
+OriginalSpawnTime = SpawnTimeInSeconds * FrameRate
 global time_to_spawn
 time_to_spawn = OriginalSpawnTime
-global Paused
-Paused = False
 
+# Sound that plays when you Game Over
 GG = pygame.mixer.Sound('audio/ouch.wav')
+# Sound that plays when you clear blocks (normal audio is a bit too loud)
 ClearSound = pygame.mixer.Sound('audio/VirusClear.wav')
 ClearSound.set_volume(0.8)
 
+# Multiple tracks, randomized each time you play!
 MusicSelector = (random.randint(1, 2))
 if MusicSelector == 1:
     musiC = pygame.mixer.Sound('audio/musica.wav')
@@ -42,11 +53,12 @@ elif MusicSelector == 2:
     musiC = pygame.mixer.Sound('audio/DungeonDome.wav')
 musiC.play(-1)
 
+# Window settings
 size = (800,425)
 windowSurfaceObj = pygame.display.set_mode(size)
 pygame.display.set_caption('Block Bash Py')
 
-
+# Image shenanigans (These will become important later)
 red = pygame.image.load('images/red.png')
 white = pygame.Color(255,255,255)
 blue = pygame.image.load('images/blue.png')
@@ -72,8 +84,8 @@ def three_consecutive_same(li):
 
 
 class Block:
-    fall_delay_time = FrameRate * 3
-    gravity_time = FrameRate / 3 # Number of frames to fall 1 cell
+    fall_delay_time = FrameRate * 3 # Number of frames to fall 1 cell
+    gravity_time = FrameRate / 3 # Number of frames block is in the air before falling
     clear_color = pygame.Color(150, 150, 150)
 
     def __init__(self, color_info):
@@ -95,11 +107,12 @@ class Block:
 
 class Board:
 
-    chain_grace_period = Block.gravity_time
+    chain_grace_period = Block.gravity_time # Chains are planned to be removed altogether
     
     def __init__(self):
         self.cells = [[None] * width for _ in range(height)]
-       
+
+        # Told you these guys would be important; generate_row() will use these
         self.tile_colors = [('red', red), ('blue', blue), ('green', green), ('yellow', yellow), ('purple', purple)]
 
         self.next_row = [None] * width
@@ -119,9 +132,11 @@ class Board:
         else:
             return None
 
+    # This is for generating the next row (Generated rows are grayed out)
     def generate_next_row(self):
         for i in range(width):
             self.next_row[i] = random.choice(self.tile_colors)
+        # This basically "re-rolls" if there is a natural combo. Game can't be too easy!
         if three_consecutive_same(self.next_row):
             self.generate_next_row()
         else:
@@ -134,6 +149,7 @@ class Board:
                 return True
         return False
 
+    # This actually adds the generated row to the matrix
     def add_next_row(self):
         if self.is_going_to_lose():
             # Stuff that happens when you lose
@@ -150,13 +166,14 @@ class Board:
                 self.cells[height - 1] = list(self.next_row)
                 self.generate_next_row()
 
+    # Swap cells when pressing Spacebar
     def swap_cells(self, x1, y1, x2, y2):
         if self.cells[y1][x1] is None or (not self.cells[y1][x1].clearing and not self.cells[y1][x1].is_falling):
             if self.cells[y2][x2] is None or (not self.cells[y2][x2].clearing and not self.cells[y2][x2].is_falling):
                 self.cells[y1][x1], self.cells[y2][x2] = self.cells[y2][x2], self.cells[y1][x1]
 
     def clear_cells(self):
-        # The original said this is only for debugging
+        # The original said this is only for debugging, so I won't mess with it
         self.cells = [[None] * width for _ in range(height)]
 
     def is_valid(self, x, y):
@@ -199,6 +216,7 @@ class Board:
                 self.cells[y][x].clearing = True
                 self.cells[y][x].shown_color = Block.clear_color
             '''
+            # Original printed the number of blocks cleared and the chain; This is planned to be removed
             print("Matched %d blocks" % self.num_matched)
             print("Chain %d" % self.chain)
             '''
@@ -217,15 +235,23 @@ class Board:
         
         Implement by checking every block multiple times. Probably optimizable.
         """
-        global IntensityNumber
+        # The Intensity makes it so that the blocks will spawn at a faster rate the longer the game goes on
+        global IntensityCounter
         global IntensityGauge
         global time_to_spawn
-        IntensityNumber += 1
-        if IntensityNumber % FrameRate == 0:
+        IntensityCounter += 1
+
+        # Intensity Gauge will naturally increase by 1 every second
+        if IntensityCounter % FrameRate == 0:
             IntensityGauge += 1
-            time_to_spawn -= (FrameRate*4)
-            if time_to_spawn <= 0:
-                time_to_spawn = (FrameRate*4)
+            # Every 10 seconds, the spawn time lowers
+            if IntensityCounter % (FrameRate * 10):
+                time_to_spawn -= (FrameRate * (1/30))
+                # Always make fail-safes
+                if time_to_spawn <= 0:
+                        time_to_spawn = 2
+                IntensityCounter += 1
+
         # First find which blocks are falling. Default to not falling
         for i in range(width):
             for j in range(height):
@@ -251,6 +277,7 @@ class Board:
                             global currentDamage
                             currentDamage += 1
                             '''
+                            # Damage will become important later
                             print ("" + (str(currentDamage)))
                             if ((currentDamage % 10) == 0) and (currentDamage != 0):
                                 print("Nice blow!")
@@ -278,7 +305,8 @@ class Board:
                         
         self.clear_matches()
         self.time += 1
-        if (self.time % time_to_spawn == 0) and (Paused == False):
+        # Rows spawn
+        if self.time % time_to_spawn == 0:
             self.add_next_row()
         no_clearing = True
         for i in range(width):
@@ -291,7 +319,7 @@ class Board:
                 self.reset_chain()
                 
 class Cursor:
-    """Represents the cursor for the self."""
+    """Represents the  cursor for the self."""
     def __init__(self):
         # x, y represent the left box of the cursor
         self.x = 2
@@ -305,30 +333,38 @@ class Cursor:
     def move_down(self):
         self.y = min(self.y + 1, height - 1)
 
+# This should ALWAYS be 40
 cellSize = 40
+# Margins added to make research paper longer than it actually is
 leftOffset = 10
 topOffset = 50
+
+# Summoning the board and cursor into existance
 board = Board()
 cursor = Cursor()
+
 for _ in range(5):
     board.add_next_row()
 time_held = {K_UP: 0, K_LEFT: 0, K_RIGHT: 0, K_DOWN: 0}
-windowSurfaceObj.fill(white)
 
 # Main Loop
 while True:
     # I use two big try-except blocks to bypass the code crashing --> Menu crashing
     try:
         windowSurfaceObj.fill(white)
+        # These four lines make the outline of the matrix
         pygame.draw.line(windowSurfaceObj, (0,0,0), (5,10), (5,410), 5)
         pygame.draw.line(windowSurfaceObj, (0,0,0), (294,10), (294, 410), 5)
         pygame.draw.line(windowSurfaceObj, (0,0,0), (5,10), (294,10), 5)
         pygame.draw.line(windowSurfaceObj, (0,0,0), (5,410), (294, 410), 5)
         board.timestep()
+        # Displaying the number of Awesome Points
         scoreObj = testFont.render("Awesome Points: %d" % board.score, False, (0, 0, 0))
         windowSurfaceObj.blit(scoreObj, (350, 150))
+        # I believe these will never be used during actual gameplay, and are probably just for testing purposes
         botVisiblePixels = int(cellSize * (board.time % time_to_spawn) / time_to_spawn)
         netTopOffset = topOffset - botVisiblePixels
+
         for i in range(width):
             for j in range(height):
                 color = board.get_cell(i, j)
@@ -346,16 +382,26 @@ while True:
         for i in range(width):
             cell = row[i]
             windowSurfaceObj.blit(gray_map[cell.color_name], (leftOffset + cellSize * i, netTopOffset + cellSize * 9), (0, 0, cellSize, botVisiblePixels))
+        # These time conversions aren't used in the code, since I base everything of of the frame rate by default
+        # I left it in because you gotta appreciate someone taking the time (pun most definitely intended) to make it
         minutes = board.time // (60 * FrameRate)
         sec = (board.time - (60 * FrameRate ) * minutes) // FrameRate
-        # timeObj = testFont.render("Intensity: %d:%02d" % (minutes, sec), False, (0, 0, 0))
+        # Displaying the Intensity Gauge
         timeObj = testFont.render("Intensity: " + str(IntensityGauge), False, (0, 0, 0) )
         windowSurfaceObj.blit(timeObj, (350, 100))
+        '''
+        # Uncomment this to display thhe Intensity Counter
+        n10cTea = testFont.render("Counter: " + str(IntensityCounter), False, (0, 0, 0))
+        windowSurfaceObj.blit(n10cTea, (350, 200))
+        '''
         cursorObj = pygame.image.load('images/cursor.png')
         windowSurfaceObj.blit(cursorObj, (cellSize * cursor.x + leftOffset - 10, cellSize * cursor.y + netTopOffset - 10))
+
+        # The heart of this program, pygame events!
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
+
                 # Hooray for key bindings! I'll try to see if I can get a controller to work later...
             elif event.type == KEYDOWN:
                 if event.key == K_UP:
@@ -368,17 +414,17 @@ while True:
                     cursor.move_right()
                 if event.key == K_SPACE:
                     board.swap_cells(cursor.x, cursor.y, cursor.x + 1, cursor.y)
-                # This is to speed up the rising of blocks (You can do this in the actual games, but not as fast)
+                # This is to speed up the rising of blocks (You can do this in the actual games)
                 if event.key == K_0:
-                    for i in BlockPush:
+                    for b in BlockPush:
                         board.timestep()
-                    print("Speed up!")
 
         pygame.display.update()
         fpsClock.tick(FrameRate)
 
     except pygame.error:
         break
+    # These were probably made for testing purposes, but I'll eventually remove them anyways
     # scoreObj = testFont.render("Awesome Points: %d" % board.score, False, (0,0,0))
     # windowSurfaceObj.blit(scoreObj, (350, 150))
     # ## chainObj = testFont.render("Chain %d" % board.chain, False, (0,0,0))
