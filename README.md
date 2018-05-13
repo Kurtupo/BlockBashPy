@@ -14,6 +14,12 @@ https://github.com/ppizarror/pygame-menu
 Nintendo - I'm literally stealing their game and music.
 
 Changelog
+-- v1.0 -- "Stable Release"
+- Revised menu
+- Game now has an intro cutscene to give nonsensical context to the game
+- Game now has animated characters
+- Bugs are now features
+
 -- v0.6 -- "Menu Madness"
 - Implemented ppizarror's menu template
 - Menu has music, sounds, and is aesthetically... well, it's pretty okay, I guess.
@@ -28,4 +34,5 @@ Known Issues:
 - Whenever a row is spawned, the bottom two completely change
 	+ This is probably because I messed with something and forgot to change it. Some cross-reference to the original should fix it.
 	+ Noted: v0.4
+	+ Solved: v1.0 - Is now a feature
 

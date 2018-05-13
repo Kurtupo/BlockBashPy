@@ -8,29 +8,27 @@ import pygame
 import pygameMenu
 from pygameMenu.locals import *
 
+
+# Play-testing reveals that arrow keys are not the most obvious of menu controls (WASD is)
+print("Use the Arrow Keys to highlight options.")
+print("Use ENTER to select the highlighted option.")
+
 # Music!
 pygame.init()
-pygame.mixer.init(frequency=32006)
+pygame.mixer.init()
 MainMenuMusic = pygame.mixer.Sound('audio/64_Menu.wav')
+DingSound = pygame.mixer.Sound('audio/Ding.wav')
 MainMenuMusic.play(-1)
 
-# Max number of characters is 38
+# Max number of characters per line is 38
 KeyboardControls = ['Use the arrow keys to move the cursor',
          'Use the space bar to swap blocks',
          'Connect 3+ Blocks to bash them!',
-         'Gain Awesome Points!',
+         'Bash 10 to Attack the enemy!',
          'Press Zero to raise the blocks'
          ]
 
-# Will change this when controller support is added
-ControllerControls = ['Use the arrow keys to move the cursor',
-         'Use the space bar to swap blocks',
-         'Connect 3+ Blocks to bash them!',
-         'Gain Awesome Points!',
-         'Press Zero to raise the blocks'
-         ]
-
-# Color of the... background
+# Color of... well, the background
 COLOR_BACKGROUND = (236, 203, 217)
 # Color of options
 COLOR_BLACK = (0, 0, 0)
@@ -39,7 +37,7 @@ COLOR_WHITE = (234, 82, 111)
 FPS = 60.0
 # Color of the inner menu
 MENU_BACKGROUND_COLOR = (255, 239, 246)
-WINDOW_SIZE = (640, 480)
+WINDOW_SIZE = (625, 425)
 
 # -----------------------------------------------------------------------------
 # Init pygame
@@ -61,6 +59,16 @@ DIFFICULTY = ['GAME']
 
 # -----------------------------------------------------------------------------
 
+def change_difficulty(d):
+    """
+    Change difficulty of the game.
+
+    :return:
+    """
+    print('Selected difficulty: {0}'.format(d))
+    DIFFICULTY[0] = d
+
+
 def play_function(difficulty, font):
     """
     Main game function
@@ -70,6 +78,7 @@ def play_function(difficulty, font):
     :return: None
     """
     MainMenuMusic.stop()
+    DingSound.play()
 
     import tetrisattack
 
@@ -164,34 +173,10 @@ KBC_menu = pygameMenu.TextMenu(surface,
                                  window_width=WINDOW_SIZE[0]
                                  )
 
-# CNC / ControllerControls MENU
-CNC_menu = pygameMenu.TextMenu(surface,
-                                 bgfun=main_background,
-                                 color_selected=COLOR_WHITE,
-                                 font=pygameMenu.fonts.FONT_BEBAS,
-                                 font_color=COLOR_BLACK,
-                                 font_size_title=30,
-                                 font_title=pygameMenu.fonts.FONT_8BIT,
-                                 menu_color=MENU_BACKGROUND_COLOR,
-                                 menu_color_title=COLOR_WHITE,
-                                 menu_height=int(WINDOW_SIZE[1] * 0.6),
-                                 menu_width=int(WINDOW_SIZE[0] * 0.6),
-                                 onclose=PYGAME_MENU_DISABLE_CLOSE,
-                                 option_shadow=False,
-                                 text_color=COLOR_BLACK,
-                                 text_fontsize=20,
-                                 title='Controls',
-                                 window_height=WINDOW_SIZE[1],
-                                 window_width=WINDOW_SIZE[0]
-                                 )
 
 for m in KeyboardControls:
     KBC_menu.add_line(m)
 KBC_menu.add_option('Return to menu', PYGAME_MENU_BACK)
-
-for m in ControllerControls:
-    CNC_menu.add_line(m)
-CNC_menu.add_option('Return to menu', PYGAME_MENU_BACK)
 
 
 # MAIN MENU
@@ -212,8 +197,7 @@ main_menu = pygameMenu.Menu(surface,
                             window_width=WINDOW_SIZE[0]
                             )
 main_menu.add_option('Play', play_menu)
-main_menu.add_option('Keyboard Controls', KBC_menu)
-# main_menu.add_option('Controller Controls', CNC_menu)
+main_menu.add_option('Controls', KBC_menu)
 main_menu.add_option('Quit', PYGAME_MENU_EXIT)
 
 # -----------------------------------------------------------------------------
@@ -238,5 +222,3 @@ while True:
     # Flip surface
     pygame.display.flip()
 
-# Nice confirmation message when code ends
-print("End of Menu")

@@ -1,3 +1,5 @@
+print("")
+
 # Import libraries
 import pygame
 import random
@@ -9,7 +11,7 @@ pygame.init()
 pygame.mixer.init()
 fpsClock = pygame.time.Clock()
 
-# Damage, while not yet important, will be in the future
+# Damage, while not yet fully implemented, will be in the future
 global currentDamage
 currentDamage = 0
 def addDamage(Damage):
@@ -46,15 +48,25 @@ ClearSound = pygame.mixer.Sound('audio/VirusClear.wav')
 ClearSound.set_volume(0.8)
 
 # Multiple tracks, randomized each time you play!
-MusicSelector = (random.randint(1, 2))
+MusicSelector = (random.randint(1, 6))
 if MusicSelector == 1:
     musiC = pygame.mixer.Sound('audio/musica.wav')
 elif MusicSelector == 2:
     musiC = pygame.mixer.Sound('audio/DungeonDome.wav')
+elif MusicSelector == 3:
+    musiC = pygame.mixer.Sound('audio/LavaReef1.wav')
+elif MusicSelector == 4:
+    musiC = pygame.mixer.Sound('audio/GrassLand4.wav')
+elif MusicSelector == 5:
+    musiC = pygame.mixer.Sound('audio/SandCanyon2.wav')
+elif MusicSelector == 6:
+    musiC = pygame.mixer.Sound('audio/Iceberg1.wav')
 musiC.play(-1)
 
+
+
 # Window settings
-size = (800,425)
+size = (700,425)
 windowSurfaceObj = pygame.display.set_mode(size)
 pygame.display.set_caption('Block Bash Py')
 
@@ -74,8 +86,119 @@ clear_map = dict([(c, pygame.image.load('images/%s2.png' % c)) for c in ('red', 
 # I'm going to have a lot of fun messing with this line of code...
 testFont = pygame.font.Font('freesansbold.ttf', 32)
 
+# Randomly selects which kind of enemy will appear
+EnemySelector = random.randint(1, 2)
+# EnemyState is used for playing animations for enemies
+global EnemyState
+EnemyState = 0
 
-# These "for i in blahblahblah" are probably going to take up the bulk of figuring out this code.
+# This will display the enemy title (It also displays the character's title)
+def EnemyTitle():
+    if EnemySelector == 1:
+        EnemyTitle1 = testFont.render("Meanie", False, (0, 0, 0))
+        EnemyTitle2 = testFont.render("Beanie", False, (0, 0, 0))
+        windowSurfaceObj.blit(EnemyTitle1, (510, 360))
+        windowSurfaceObj.blit(EnemyTitle2, (550, 390))
+    if EnemySelector == 2:
+        EnemyTitle1 = testFont.render("Mister", False, (0, 0, 0))
+        EnemyTitle2 = testFont.render("Twister", False, (0, 0, 0))
+        windowSurfaceObj.blit(EnemyTitle1, (510, 360))
+        windowSurfaceObj.blit(EnemyTitle2, (550, 390))
+    CharacterTitle1 = testFont.render("Block", False, (0, 0, 0))
+    CharacterTitle2 = testFont.render("Head", False, (0, 0, 0))
+    windowSurfaceObj.blit(CharacterTitle1, (300, 360))
+    windowSurfaceObj.blit(CharacterTitle2, (360, 390))
+
+# CharacterState is used for playing animations for characters
+global CharacterState
+CharacterState = 0
+global Character
+
+# Uses the CharacterState to play animations
+# Character swaps between two animations unless an interval of 10 damage has been dealt
+def AnimateCharacter():
+    global CharacterState
+    global Character
+    global CharacterX
+    global CharacterY
+    if CharacterState == 0:
+        Character = pygame.image.load('images/Blockhead_01.png')
+        CharacterX = 320
+        CharacterY = 200
+    if CharacterState == 30:
+        Character = pygame.image.load('images/Blockhead_02.png')
+        CharacterX = 320
+        CharacterY = 214
+    # The large parameter allows for more design space, since I can add more animations later
+    if CharacterState == 300:
+        Character = pygame.image.load('images/Blockhead_00.png')
+        CharacterX = 320
+        CharacterY = 200
+    # Resets the animation
+    if (CharacterState == 60) or (CharacterState == 330):
+        CharacterState = -1
+    windowSurfaceObj.blit(Character, (CharacterX, CharacterY))
+    CharacterState += 1
+
+# Similar to the Character animations, but uses its own variables
+# This one is for the Meanie Beanie enemy
+def MeanieBeanie():
+    global EnemyState
+    global Enemy
+    global BeanieX
+    global BeanieY
+    global currentDamage
+    if EnemyState == 0:
+        Enemy = pygame.image.load('images/MeanieBeanie_01.png')
+        BeanieX = 520
+        BeanieY = 200
+    if EnemyState == 30:
+        Enemy = pygame.image.load('images/MeanieBeanie_02.png')
+        BeanieX = 520
+        BeanieY = 207
+    if EnemyState == 300:
+        Enemy = pygame.image.load('images/MeanieBeanie_00.png')
+        BeanieX = 470
+        BeanieY = 215
+    if (EnemyState == 60) or (EnemyState == 330):
+        EnemyState = -1
+    windowSurfaceObj.blit(Enemy, (BeanieX, BeanieY))
+    EnemyState += 1
+
+# Once again similar to the previous animations
+# This one is for the Mister Twister enemy
+def MisterTwister():
+    global EnemyState
+    global Enemy
+    global TwisterX
+    global TwisterY
+    global currentDamage
+    if EnemyState == 0:
+        Enemy = pygame.image.load('images/MisterTwister_01.png')
+        TwisterX = 520
+        TwisterY = 190
+    if EnemyState == 30:
+        Enemy = pygame.image.load('images/MisterTwister_02.png')
+        TwisterX = 520
+        TwisterY = 190
+    if EnemyState == 300:
+        Enemy = pygame.image.load('images/MisterTwister_00.png')
+        TwisterX = 520
+        TwisterY = 190
+    if (EnemyState == 60) or (EnemyState == 330):
+        EnemyState = -1
+    windowSurfaceObj.blit(Enemy, (TwisterX, TwisterY))
+    EnemyState += 1
+
+# Depending one what enemy was chosen, this will animate its corresponding enemy.
+def EnemyAnimate():
+    if EnemySelector == 1:
+        MeanieBeanie()
+    if EnemySelector == 2:
+        MisterTwister()
+
+
+# Checks if three consecutive blocks touch each other
 def three_consecutive_same(li):
     for i in range(len(li) - 2):
         if li[i] == li[i+1] and li[i+1] == li[i+2]:
@@ -106,9 +229,7 @@ class Block:
 
 
 class Board:
-
     chain_grace_period = Block.gravity_time # Chains are planned to be removed altogether
-    
     def __init__(self):
         self.cells = [[None] * width for _ in range(height)]
 
@@ -143,6 +264,7 @@ class Board:
             for i in range(width):
                 self.next_row[i] = Block(self.next_row[i])
 
+    # A simple game state function. Nothing fancy
     def is_going_to_lose(self):
         for cell in self.cells[0]:
             if cell is not None:
@@ -153,7 +275,9 @@ class Board:
     def add_next_row(self):
         if self.is_going_to_lose():
             # Stuff that happens when you lose
-            print("FAIL")
+            print("Game Over!")
+            print("Your Awesomeness: " + str(currentDamage))
+            print("Intensity Reached: " + str(IntensityGauge))
             musiC.stop()
             GG.play()
             sleep (2)
@@ -215,11 +339,6 @@ class Board:
             for x, y in matched:
                 self.cells[y][x].clearing = True
                 self.cells[y][x].shown_color = Block.clear_color
-            '''
-            # Original printed the number of blocks cleared and the chain; This is planned to be removed
-            print("Matched %d blocks" % self.num_matched)
-            print("Chain %d" % self.chain)
-            '''
 
     def reset_chain(self):
         self.chain = 0
@@ -233,7 +352,7 @@ class Board:
         New lines get spawned
         Values get reset
         
-        Implement by checking every block multiple times. Probably optimizable.
+        Implement by checking every block multiple times. Probably optimizable. <-- (A word)
         """
         # The Intensity makes it so that the blocks will spawn at a faster rate the longer the game goes on
         global IntensityCounter
@@ -276,14 +395,21 @@ class Board:
                             self.cells[j][i] = None
                             global currentDamage
                             currentDamage += 1
+
                             '''
                             # Damage will become important later
                             print ("" + (str(currentDamage)))
-                            if ((currentDamage % 10) == 0) and (currentDamage != 0):
-                                print("Nice blow!")
                             '''
+                            # Certain aactions occur when an interval of 10 damage is dealt
+                            # Here, it animates the character and enemy
+                            if ((currentDamage % 10) == 0) and (currentDamage != 0):
+                                global EnemyState
+                                global CharacterState
+                                # print("Nice blow!")
+                                EnemyState = 300
+                                CharacterState = 300
                             ClearSound.play()
-                            self.score += cell.score_on_clear * (self.chain ** 2)
+                            self.score += cell.score_on_clear
                             # Tell all above that they are falling from a match
                             for k in range(j):
                                 if self.cells[k][i]:
@@ -339,11 +465,12 @@ cellSize = 40
 leftOffset = 10
 topOffset = 50
 
-# Summoning the board and cursor into existance
+# Summoning the board and cursor into existence
 board = Board()
 cursor = Cursor()
 
-for _ in range(5):
+#Adds blocks at the beginning of the game
+for _ in range(3):
     board.add_next_row()
 time_held = {K_UP: 0, K_LEFT: 0, K_RIGHT: 0, K_DOWN: 0}
 
@@ -359,8 +486,9 @@ while True:
         pygame.draw.line(windowSurfaceObj, (0,0,0), (5,410), (294, 410), 5)
         board.timestep()
         # Displaying the number of Awesome Points
-        scoreObj = testFont.render("Awesome Points: %d" % board.score, False, (0, 0, 0))
-        windowSurfaceObj.blit(scoreObj, (350, 150))
+        scoreObj = testFont.render("Awesomeness: %d" % board.score, False, (0, 0, 0))
+        windowSurfaceObj.blit(scoreObj, (310, 125))
+
         # I believe these will never be used during actual gameplay, and are probably just for testing purposes
         botVisiblePixels = int(cellSize * (board.time % time_to_spawn) / time_to_spawn)
         netTopOffset = topOffset - botVisiblePixels
@@ -388,21 +516,30 @@ while True:
         sec = (board.time - (60 * FrameRate ) * minutes) // FrameRate
         # Displaying the Intensity Gauge
         timeObj = testFont.render("Intensity: " + str(IntensityGauge), False, (0, 0, 0) )
-        windowSurfaceObj.blit(timeObj, (350, 100))
+        windowSurfaceObj.blit(timeObj, (310, 75))
         '''
-        # Uncomment this to display thhe Intensity Counter
+        # Uncomment this to display the Intensity Counter
         n10cTea = testFont.render("Counter: " + str(IntensityCounter), False, (0, 0, 0))
         windowSurfaceObj.blit(n10cTea, (350, 200))
         '''
+        # Displaying the cursor
         cursorObj = pygame.image.load('images/cursor.png')
         windowSurfaceObj.blit(cursorObj, (cellSize * cursor.x + leftOffset - 10, cellSize * cursor.y + netTopOffset - 10))
+
+        # Animating the character, enemy, and titles
+        AnimateCharacter()
+        EnemyAnimate()
+        EnemyTitle()
+
+        # The "VS" display
+        windowSurfaceObj.blit((testFont.render("VS", False, (0, 0, 0))), (450, 375))
 
         # The heart of this program, pygame events!
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
 
-                # Hooray for key bindings! I'll try to see if I can get a controller to work later...
+                # Hooray for key bindings!
             elif event.type == KEYDOWN:
                 if event.key == K_UP:
                     cursor.move_up()
@@ -422,13 +559,7 @@ while True:
         pygame.display.update()
         fpsClock.tick(FrameRate)
 
+    # This allows the game ending to not cause the menu to close
     except pygame.error:
         break
-    # These were probably made for testing purposes, but I'll eventually remove them anyways
-    # scoreObj = testFont.render("Awesome Points: %d" % board.score, False, (0,0,0))
-    # windowSurfaceObj.blit(scoreObj, (350, 150))
-    # ## chainObj = testFont.render("Chain %d" % board.chain, False, (0,0,0))
-    # ## windowSurfaceObj.blit(chainObj, (350, 200))
 
-# I like to have my code print confirmation messages when they end
-print("End of Game")
